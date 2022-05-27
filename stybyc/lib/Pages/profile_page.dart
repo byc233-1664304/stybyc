@@ -44,7 +44,7 @@ class _ProfilePageState extends State<ProfilePage> {
         couple = data['couple'];
         anniversary = data['anniversary'].toDate();
         background = data['background'];
-        if (couple != null) {
+        if (couple != '') {
           getCoupleInfo();
         }
         setState(() {});
@@ -134,11 +134,11 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Container(
         constraints: const BoxConstraints.expand(),
-        decoration: BoxDecoration(
-            image: DecorationImage(
-          image: NetworkImage(background),
-          fit: BoxFit.cover,
-        )),
+        //decoration: BoxDecoration(
+        //image: DecorationImage(
+        //image: NetworkImage(background),
+        //fit: BoxFit.cover,
+        //)),
         child: Scaffold(
           backgroundColor: Colors.transparent,
           body: Center(
@@ -171,7 +171,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget getIntroWidget() {
     final _coupleEmailController = TextEditingController();
-    if (couple != null) {
+    if (couple != '') {
       final difference = DateTime.now().difference(anniversary).inDays;
       return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Text(
@@ -224,7 +224,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   child: Text(
                                     'Nevermind',
                                     style: TextStyle(
-                                        color: Colors.red, fontSize: 20),
+                                        color: Colors.blue, fontSize: 20),
                                   ),
                                 ),
                                 SizedBox(height: 20),
