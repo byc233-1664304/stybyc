@@ -23,6 +23,7 @@ class UserPage extends StatefulWidget {
 
 class _UserPageState extends State<UserPage> {
   late final _usernameController;
+  late final origBirthday;
 
   var file;
 
@@ -51,6 +52,7 @@ class _UserPageState extends State<UserPage> {
         username = data['username'];
         profilePath = data['profilePath'];
         birthday = data['birthday'].toDate();
+        origBirthday = birthday;
         anniversary = data['anniversary'].toDate();
         couple = data['couple'];
         _usernameController = TextEditingController(text: username);
@@ -189,7 +191,7 @@ class _UserPageState extends State<UserPage> {
                               child: Column(
                                 children: [
                                   SizedBox(
-                                    height: 400,
+                                    height: 350,
                                     child: CupertinoDatePicker(
                                       initialDateTime: birthday,
                                       mode: CupertinoDatePickerMode.date,
@@ -205,9 +207,23 @@ class _UserPageState extends State<UserPage> {
                                       Navigator.of(context).pop();
                                     },
                                     child: Text(
-                                      'Yep!',
+                                      'Confirm',
                                       style: TextStyle(
                                           color: Colors.blue, fontSize: 28),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      birthday = origBirthday;
+                                      Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  UserPage()));
+                                    },
+                                    child: Text(
+                                      'Nevermind',
+                                      style: TextStyle(
+                                          color: Colors.red, fontSize: 20),
                                     ),
                                   ),
                                 ],
@@ -241,7 +257,7 @@ class _UserPageState extends State<UserPage> {
 
   Widget buildImage() {
     String currprofilePath = profilePath ??
-        'https://isobarscience.com/wp-content/uploads/2020/09/default-profile-picture1.jpg';
+        'https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg';
     final image = NetworkImage(currprofilePath);
 
     return ClipOval(

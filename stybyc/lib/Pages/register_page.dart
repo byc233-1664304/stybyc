@@ -76,6 +76,8 @@ class _RegisterPageState extends State<RegisterPage> {
         'birthday': DateTime.now(),
         'anniversary': DateTime.now(),
         'couple': null,
+        'background':
+            'https://i.pinimg.com/564x/72/53/d1/7253d19fdce28f4a297e0838abe1fcc4.jpg',
       });
 
       Navigator.of(context).push(
