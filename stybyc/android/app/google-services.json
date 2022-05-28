@@ -1,0 +1,83 @@
+{
+  "project_info": {
+    "project_number": "770967406718",
+    "firebase_url": "https://stybyc-71621-default-rtdb.firebaseio.com",
+    "project_id": "stybyc-71621",
+    "storage_bucket": "stybyc-71621.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:770967406718:android:d4207830cb2b0c4ae5702f",
+        "android_client_info": {
+          "package_name": "com.company.stybyc"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "770967406718-8l96hn4vc8hb4n58d7jn2ro7batl821a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANh1bjSlVKOiepzGj28QJSm0_Bb-junFw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "770967406718-8l96hn4vc8hb4n58d7jn2ro7batl821a.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "770967406718-6ut44f0s4gefs0sev9tvtsi47eque5n1.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.stybyc"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:770967406718:android:e98c1ec4d454f429e5702f",
+        "android_client_info": {
+          "package_name": "com.example.stybyc"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "770967406718-8l96hn4vc8hb4n58d7jn2ro7batl821a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANh1bjSlVKOiepzGj28QJSm0_Bb-junFw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "770967406718-8l96hn4vc8hb4n58d7jn2ro7batl821a.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "770967406718-6ut44f0s4gefs0sev9tvtsi47eque5n1.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.stybyc"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
