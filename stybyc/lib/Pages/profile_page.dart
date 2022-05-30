@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:stybyc/Pages/tab_page.dart';
 import 'package:stybyc/Widgets/profile_widget.dart';
 import 'package:stybyc/Pages/user_page.dart';
+import 'package:stybyc/model/databaseService.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({
@@ -52,8 +52,6 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-  Future getDownloadURL() async {}
-
   getCoupleInfo() async {
     DocumentSnapshot snapshot =
         await FirebaseFirestore.instance.collection('users').doc(couple).get();
@@ -72,7 +70,50 @@ class _ProfilePageState extends State<ProfilePage> {
         .listen((coupleData) {
       String couple = coupleData.docs[0]['uid'];
 
-      if (coupleData.docs[0]['couple'] == null) {
+      if (coupleData.docs[0]['couple'] != '') {
+        // alert this person has a partner already
+        Navigator.of(context).pop();
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  title: Text(
+                    'Something Went Wrong :(',
+                    style: TextStyle(color: Colors.green),
+                  ),
+                  content: Text(
+                    'This person has a partner already',
+                    style: TextStyle(color: Colors.green),
+                  ),
+                  actions: [
+                    TextButton(
+                      child: Text(
+                        'Fine',
+                        style: TextStyle(color: Colors.green),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    )
+                  ],
+                ));
+      } else if (coupleData.docs[0]['allowConnection'] == false) {
+        // alert this person don't want to be connected
+        Navigator.of(context).pop();
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  title: Text('Something Went Wrong :('),
+                  content: Text('This person doesn\'t allow any connection'),
+                  actions: [
+                    TextButton(
+                      child: Text('OK'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    )
+                  ],
+                ));
+      } else {
         FirebaseAuth.instance.authStateChanges().listen((currUser) async {
           final currUser = await FirebaseAuth.instance.currentUser;
 
@@ -85,28 +126,11 @@ class _ProfilePageState extends State<ProfilePage> {
           Map<String, dynamic> userData =
               snapshot.data()! as Map<String, dynamic>;
 
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(couple)
-              .update({
-            'couple': userData['uid'],
-            'anniversary': DateTime.now(),
-          });
+          await DatabaseService(uid: couple).connect(currUser.uid);
+          await DatabaseService(uid: currUser.uid).connect(couple);
 
-          // update user info about partner
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(currUser.uid)
-              .update(
-            {
-              'couple': couple,
-              'anniversary': DateTime.now(),
-            },
-          );
           setState(() {});
         });
-      } else {
-        // alert that this person has a partner already
       }
     });
   }
@@ -114,19 +138,10 @@ class _ProfilePageState extends State<ProfilePage> {
   updateAnniversary() async {
     final currUser = await FirebaseAuth.instance.currentUser;
     // update user
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currUser!.uid)
-        .update(
-      {'anniversary': anniversary},
-    );
+    await DatabaseService(uid: currUser!.uid).updateAnniversary(anniversary);
 
     //update partner
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(couple)
-        .update({'anniversary': anniversary});
-
+    await DatabaseService(uid: couple).updateAnniversary(anniversary);
     setState(() {});
   }
 
@@ -171,7 +186,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget getIntroWidget() {
     final _coupleEmailController = TextEditingController();
-    if (couple != '') {
+    if (couple != 'NA') {
       final difference = DateTime.now().difference(anniversary).inDays;
       return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Text(
@@ -227,15 +242,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                         color: Colors.blue, fontSize: 20),
                                   ),
                                 ),
-                                SizedBox(height: 20),
-                                TextButton(
-                                  onPressed: () {},
-                                  child: Text(
-                                    'Break up :(',
-                                    style: TextStyle(
-                                        color: Colors.red, fontSize: 15),
-                                  ),
-                                ),
                               ],
                             ),
                           ],
@@ -255,7 +261,8 @@ class _ProfilePageState extends State<ProfilePage> {
       ]);
     } else {
       return Column(children: [
-        Text('Your partner is on the way...'),
+        Text('Your partner is on the way...',
+            style: GoogleFonts.indieFlower(fontSize: 20)),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           GestureDetector(
             onTap: () => {
@@ -280,13 +287,14 @@ class _ProfilePageState extends State<ProfilePage> {
             },
             child: Text(
               'Connect ',
-              style: TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
-              ),
+              style: GoogleFonts.indieFlower(
+                  fontSize: 20,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold),
             ),
           ),
-          Text("to your partner right now!"),
+          Text("to your partner right now!",
+              style: GoogleFonts.indieFlower(fontSize: 20)),
         ])
       ]);
     }

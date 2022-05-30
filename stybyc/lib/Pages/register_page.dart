@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:stybyc/auth/decision_tree.dart';
+import 'package:stybyc/model/authService.dart';
+import 'package:stybyc/model/databaseService.dart';
 
 class RegisterPage extends StatefulWidget {
   final VoidCallback showLoginPage;
@@ -39,7 +41,7 @@ class _RegisterPageState extends State<RegisterPage> {
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
-      } on Exception catch (e) {
+      } on FirebaseAuthException catch (e) {
         showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -67,18 +69,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
       // add user details to document
       final userUID = await FirebaseAuth.instance.currentUser!.uid;
-      FirebaseFirestore.instance.collection("users").doc(userUID).set({
-        "uid": userUID,
-        'username': _usernameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'profilePath':
-            'https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg',
-        'birthday': DateTime.now(),
-        'anniversary': DateTime.now(),
-        'couple': '',
-        'background':
-            'https://i.pinimg.com/564x/72/53/d1/7253d19fdce28f4a297e0838abe1fcc4.jpg',
-      });
+      DatabaseService(uid: userUID).setDefaultUser(
+          _usernameController.text.trim(), _emailController.text.trim());
 
       Navigator.of(context).push(
         MaterialPageRoute(builder: (context) => DecisionTree()),

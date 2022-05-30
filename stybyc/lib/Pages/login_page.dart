@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:stybyc/Pages/forgotPassword_page.dart';
 import 'package:stybyc/auth/decision_tree.dart';
+import 'package:stybyc/model/authService.dart';
 
 class LoginPage extends StatefulWidget {
   final VoidCallback showRegisterPage;
@@ -18,17 +19,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
-  Future signIn() async {
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
-
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => DecisionTree()),
-    );
-  }
 
   @override
   void dispose() {
@@ -51,27 +41,21 @@ class _LoginPageState extends State<LoginPage> {
                   Icons.android,
                   size: 100,
                 ),
-
                 SizedBox(height: 75),
-
                 Text(
                   'Hello Again!',
                   style: GoogleFonts.bebasNeue(
                     fontSize: 52,
                   ),
                 ),
-
                 SizedBox(height: 10),
-
                 Text(
                   'Welcome back, you\'ve been missed!',
                   style: TextStyle(
                     fontSize: 20,
                   ),
                 ),
-
-                SizedBox(height:50),
-
+                SizedBox(height: 50),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: TextField(
@@ -91,9 +75,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
                 SizedBox(height: 10),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: TextField(
@@ -114,35 +96,56 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
                 SizedBox(height: 10),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: GestureDetector(
-                    onTap: () => signIn(),
-                    child: Container(
-                      padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Sign In',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
+                      onTap: () async {
+                        try {
+                          await FirebaseAuth.instance
+                              .signInWithEmailAndPassword(
+                            email: _emailController.text.trim(),
+                            password: _passwordController.text.trim(),
+                          );
+                        } on FirebaseAuthException catch (e) {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text("Something Went Wrong!"),
+                                content: Text(e.toString()),
+                                actions: [
+                                  TextButton(
+                                    child: Text("OK"),
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Sign In',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                  ),
+                      )),
                 ),
-
                 SizedBox(height: 25),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -164,11 +167,11 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
-
                 SizedBox(height: 10),
                 GestureDetector(
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) {
                       return ForgotPasswordPage();
                     }));
                   },
