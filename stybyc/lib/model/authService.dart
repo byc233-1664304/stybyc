@@ -48,4 +48,9 @@ class AuthService {
       print(e.toString());
     }
   }
+
+  Future getLanguageSettings() async {
+    final data = await AuthService().getUserData();
+    return data['language'];
+  }
 }

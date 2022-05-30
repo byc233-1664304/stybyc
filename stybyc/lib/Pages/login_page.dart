@@ -19,12 +19,17 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  late final language = getLanguage();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future getLanguage() async {
+    return await AuthService().getLanguageSettings();
   }
 
   @override
@@ -69,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: 'Email',
+                      hintText: language == 'en-US' ? 'Email' : '邮箱',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -90,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: 'Password',
+                      hintText: language == 'en-US' ? 'Password' : '密码',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -135,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         child: Center(
                           child: Text(
-                            'Sign In',
+                            language == 'en-US' ? 'Sign In' : '登 录',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -146,27 +151,7 @@ class _LoginPageState extends State<LoginPage> {
                       )),
                 ),
                 SizedBox(height: 25),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Not a member? ',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: widget.showRegisterPage,
-                      child: Text(
-                        'Register now',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                getRegisterIntro(),
                 SizedBox(height: 10),
                 GestureDetector(
                   onTap: () {
@@ -176,7 +161,7 @@ class _LoginPageState extends State<LoginPage> {
                     }));
                   },
                   child: Text(
-                    'Forget Password?',
+                    language == 'en-US' ? 'Forget Password?' : '忘记密码啦？',
                     style: TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.bold,
@@ -189,5 +174,49 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  Widget getRegisterIntro() {
+    if (language == 'en-US') {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Not a member? ',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          GestureDetector(
+            onTap: widget.showRegisterPage,
+            child: Text(
+              'Register now',
+              style: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('没有账户吗？现在就', style: TextStyle(fontWeight: FontWeight.bold)),
+          GestureDetector(
+            onTap: widget.showRegisterPage,
+            child: Text(
+              ' 注册 ',
+              style: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Text('吧！', style: TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      );
+    }
   }
 }

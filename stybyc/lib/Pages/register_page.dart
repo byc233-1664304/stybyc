@@ -22,6 +22,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _usernameController = TextEditingController();
+  late final language = getLanguage();
 
   @override
   void dispose() {
@@ -87,6 +88,10 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+  Future getLanguage() async {
+    return await AuthService().getLanguageSettings();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,7 +134,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: 'Username',
+                      hintText: language == 'en-US' ? 'Username' : '用户名',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -149,7 +154,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: 'Email',
+                      hintText: language == 'en-US' ? 'Email' : '邮箱',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -170,7 +175,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: 'Password',
+                      hintText: language == 'en-US' ? 'Password' : '密码',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -191,7 +196,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: 'Confirm Password',
+                      hintText:
+                          language == 'en-US' ? 'Confirm Password' : '确认密码',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -212,7 +218,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         child: Center(
                           child: Text(
-                            'Sign Up',
+                            language == 'en-US' ? 'Sign Up' : '注 册',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -227,7 +233,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'I am a member! ',
+                      language == 'en-US' ? 'I am a member! ' : '我有账户的！',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                       ),
@@ -235,7 +241,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     GestureDetector(
                       onTap: widget.showLoginPage,
                       child: Text(
-                        'Login now',
+                        language == 'en-US' ? 'Login now' : '去登录',
                         style: TextStyle(
                           color: Colors.blue,
                           fontWeight: FontWeight.bold,

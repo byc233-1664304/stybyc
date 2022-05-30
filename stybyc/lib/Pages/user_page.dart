@@ -31,6 +31,7 @@ class _UserPageState extends State<UserPage> {
   var profileFile;
   var backgroundFile;
 
+  var currUserUID;
   var username;
   var email;
   var profilePath;
@@ -39,6 +40,7 @@ class _UserPageState extends State<UserPage> {
   var anniversary;
   var couple;
   var allowConnection;
+  var en;
 
   @override
   initState() {
@@ -49,6 +51,7 @@ class _UserPageState extends State<UserPage> {
   initInfo() async {
     Map<String, dynamic> data =
         await AuthService().getUserData() as Map<String, dynamic>;
+    currUserUID = data['uid'];
     username = data['username'];
     email = data['email'];
     profilePath = data['profilePath'];
@@ -58,6 +61,7 @@ class _UserPageState extends State<UserPage> {
     anniversary = data['anniversary'].toDate();
     couple = data['couple'];
     allowConnection = data['allowConnection'];
+    en = data['language'] == 'en-US';
 
     _usernameController = TextEditingController(text: username);
 
@@ -80,17 +84,17 @@ class _UserPageState extends State<UserPage> {
             context: context,
             builder: (context) => AlertDialog(
                   title: Text(
-                    'Something Went Wrong :(',
+                    en ? 'Something Went Wrong :(' : '出错啦 :(',
                     style: TextStyle(color: Colors.green),
                   ),
                   content: Text(
-                    'This person has a partner already',
+                    en ? 'This person has a partner already' : '这个人已经有伴啦',
                     style: TextStyle(color: Colors.green),
                   ),
                   actions: [
                     TextButton(
                       child: Text(
-                        'Fine',
+                        en ? 'Fine' : '好吧',
                         style: TextStyle(color: Colors.green),
                       ),
                       onPressed: () {
@@ -105,8 +109,10 @@ class _UserPageState extends State<UserPage> {
         showDialog(
             context: context,
             builder: (context) => AlertDialog(
-                  title: Text('Something Went Wrong :('),
-                  content: Text('This person doesn\'t allow any connection'),
+                  title: Text(en ? 'Something Went Wrong :(' : '出错啦 :('),
+                  content: Text(en
+                      ? 'This person doesn\'t allow any connection'
+                      : '这个人不允许来自任何人的配对哦'),
                   actions: [
                     TextButton(
                       child: Text('OK'),
@@ -117,17 +123,15 @@ class _UserPageState extends State<UserPage> {
                   ],
                 ));
       } else {
-        final currUser = await FirebaseAuth.instance.currentUser;
-        await DatabaseService(uid: couple).connect(currUser!.uid);
-        await DatabaseService(uid: currUser.uid).connect(couple);
+        await DatabaseService(uid: couple).connect(currUserUID);
+        await DatabaseService(uid: currUserUID).connect(couple);
         setState(() {});
       }
     });
   }
 
   Future disconnect() async {
-    final currUser = await FirebaseAuth.instance.currentUser;
-    await DatabaseService(uid: currUser!.uid).disconnect();
+    await DatabaseService(uid: currUserUID).disconnect();
     await DatabaseService(uid: couple).disconnect();
 
     setState(() {});
@@ -220,21 +224,51 @@ class _UserPageState extends State<UserPage> {
                   chooseBackground();
                 } else if (value == 1) {
                   // TODO: change back to default theme
+                } else if (value == 2) {
+                  // switch language
+                  showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                            title: Text(en
+                                ? 'Are you sure to switch language?'
+                                : '你确定要换英文界面吗？'),
+                            actions: [
+                              TextButton(
+                                child: Text(en ? 'Yep' : '确定'),
+                                onPressed: () async {
+                                  await DatabaseService(uid: currUserUID)
+                                      .switchLanguage();
+                                  Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (context) => UserPage(),
+                                  ));
+                                },
+                              ),
+                              TextButton(
+                                child: Text(en ? 'Nevermind' : '算了'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ],
+                          ));
+                  setState(() {});
                 } else {
                   if (couple == 'NA') {
                     // connect menu
                     showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                              title: Text('Connecting with...'),
+                              title: Text(en ? 'Connecting with...' : '配对中...'),
                               content: TextField(
                                 controller: _coupleEmailController,
                                 decoration: InputDecoration(
-                                    hintText: 'Enter your partener\'s email'),
+                                    hintText: en
+                                        ? 'Enter your partener\'s email'
+                                        : '请输入你想配对的email'),
                               ),
                               actions: [
                                 TextButton(
-                                  child: Text('Confirm'),
+                                  child: Text(en ? 'Confirm' : '确认'),
                                   onPressed: () {
                                     connect(_coupleEmailController.text.trim(),
                                         context);
@@ -247,12 +281,13 @@ class _UserPageState extends State<UserPage> {
                     showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                              title: Text('Break Up?'),
-                              content: Text(
-                                  'Are you sure you want to break up with your partner?'),
+                              title: Text(en ? 'Break Up?' : '分手？'),
+                              content: Text(en
+                                  ? 'Are you sure you want to break up with your partner?'
+                                  : '你确定要和TA分手吗？'),
                               actions: [
                                 TextButton(
-                                  child: Text('Yes :('),
+                                  child: Text(en ? 'Yes :(' : '确定 :('),
                                   onPressed: () {
                                     disconnect();
                                     Navigator.of(context)
@@ -262,7 +297,7 @@ class _UserPageState extends State<UserPage> {
                                   },
                                 ),
                                 TextButton(
-                                    child: Text('Nevermind'),
+                                    child: Text(en ? 'Nevermind' : '算了'),
                                     onPressed: () {
                                       Navigator.of(context).pop();
                                     })
@@ -274,18 +309,24 @@ class _UserPageState extends State<UserPage> {
               itemBuilder: (context) => [
                 PopupMenuItem(
                   value: 0,
-                  child: Text("Change Your Background"),
+                  child: Text(en ? "Change Your Background" : '换背景'),
                 ),
                 PopupMenuItem(
                   value: 1,
-                  child: Text("Restore Theme Settings"),
+                  child: Text(en ? "Restore Theme Settings" : '恢复默认主题'),
                 ),
                 PopupMenuItem(
                   value: 2,
+                  child: Text(en ? 'Switch to Chinese' : '换英文界面'),
+                ),
+                PopupMenuItem(
+                  value: 3,
                   child: couple == 'NA'
-                      ? Text("Connect to Your Partner")
+                      ? Text(en ? "Connect to Your Partner" : '配对')
                       : Text(
-                          "Break Up ${Emojis.brokenHeart}",
+                          en
+                              ? "Break Up ${Emojis.brokenHeart}"
+                              : '分手${Emojis.brokenHeart}',
                           style: TextStyle(color: Colors.red),
                         ),
                 )
@@ -320,7 +361,7 @@ class _UserPageState extends State<UserPage> {
             child: Row(
               children: <Widget>[
                 Text(
-                  'User Name',
+                  en ? 'User Name' : '用户名',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -328,7 +369,7 @@ class _UserPageState extends State<UserPage> {
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(width: 194),
+                SizedBox(width: en ? 194 : 244),
                 Flexible(
                   child: CupertinoTextField.borderless(
                     controller: _usernameController,
@@ -344,7 +385,7 @@ class _UserPageState extends State<UserPage> {
           child: Row(
             children: <Widget>[
               Text(
-                'Birthday',
+                en ? 'Birthday' : '生日',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -352,7 +393,7 @@ class _UserPageState extends State<UserPage> {
                   color: Colors.black,
                 ),
               ),
-              SizedBox(width: 185),
+              SizedBox(width: en ? 185 : 232),
               CupertinoButton(
                 padding: EdgeInsetsDirectional.zero,
                 child: Text(
@@ -385,7 +426,7 @@ class _UserPageState extends State<UserPage> {
                                     Navigator.of(context).pop();
                                   },
                                   child: Text(
-                                    'Confirm',
+                                    en ? 'Confirm' : '确认',
                                     style: TextStyle(
                                         color: Colors.blue, fontSize: 28),
                                   ),
@@ -398,7 +439,7 @@ class _UserPageState extends State<UserPage> {
                                             builder: (context) => UserPage()));
                                   },
                                   child: Text(
-                                    'Nevermind',
+                                    en ? 'Nevermind' : '取消',
                                     style: TextStyle(
                                         color: Colors.blue, fontSize: 20),
                                   ),
@@ -418,7 +459,7 @@ class _UserPageState extends State<UserPage> {
             child: Row(
               children: [
                 Text(
-                  'Allow Connection',
+                  en ? 'Allow Connection' : '允许配对',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -426,7 +467,7 @@ class _UserPageState extends State<UserPage> {
                     color: Colors.black,
                   ),
                 ),
-                SizedBox(width: 150),
+                SizedBox(width: en ? 150 : 230),
                 CupertinoSwitch(
                     value: allowConnection,
                     onChanged: (value) {
@@ -439,7 +480,7 @@ class _UserPageState extends State<UserPage> {
         ),
         const SizedBox(height: 25),
         CupertinoButton.filled(
-          child: const Text('Save'),
+          child: Text(en ? 'Save' : '保存'),
           onPressed: () async {
             updateProfile();
             updateBackground();
@@ -448,7 +489,7 @@ class _UserPageState extends State<UserPage> {
         ),
         const SizedBox(height: 10),
         CupertinoButton(
-          child: const Text('Sign Out'),
+          child: Text(en ? 'Sign Out' : '退出登录'),
           onPressed: () async {
             await AuthService().logOut();
             Navigator.of(context).push(
@@ -458,22 +499,25 @@ class _UserPageState extends State<UserPage> {
         ),
         const SizedBox(height: 10),
         CupertinoButton(
-          child:
-              const Text('Delete Account', style: TextStyle(color: Colors.red)),
+          child: Text(en ? 'Delete Account' : '删除账号',
+              style: TextStyle(color: Colors.red)),
           onPressed: () {
             final _passwordController = TextEditingController();
 
             showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                      title: Text('Enter Your Password to Delete Account'),
+                      title: Text(en
+                          ? 'Enter Your Password to Delete Account'
+                          : '输入密码来删除账号'),
                       content: TextField(
                         controller: _passwordController,
-                        decoration: InputDecoration(hintText: 'Password'),
+                        decoration:
+                            InputDecoration(hintText: en ? 'Password' : '密码'),
                       ),
                       actions: [
                         TextButton(
-                          child: Text('Confirm'),
+                          child: Text(en ? 'Confirm' : '确定'),
                           onPressed: () {
                             try {
                               AuthService().deleteUser(
@@ -500,7 +544,7 @@ class _UserPageState extends State<UserPage> {
                           },
                         ),
                         TextButton(
-                          child: Text('Nevermind'),
+                          child: Text(en ? 'Nevermind' : '算啦'),
                           onPressed: () {
                             Navigator.of(context).pop();
                           },

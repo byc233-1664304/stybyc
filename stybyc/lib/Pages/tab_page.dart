@@ -3,6 +3,8 @@ import 'package:stybyc/Pages/partner_page.dart';
 import 'package:stybyc/Pages/profile_page.dart';
 import 'package:stybyc/Pages/redeem_page.dart';
 import 'package:stybyc/Pages/myPov_page.dart';
+import 'package:stybyc/model/authService.dart';
+import 'package:stybyc/model/databaseService.dart';
 
 class TabPage extends StatefulWidget {
   const TabPage({
@@ -14,6 +16,12 @@ class TabPage extends StatefulWidget {
 }
 
 class _TabPageState extends State<TabPage> {
+  late final language = getLanguage();
+
+  Future getLanguage() async {
+    return await AuthService().getLanguageSettings();
+  }
+
   @override
   Widget build(BuildContext context) {
     return CupertinoTabScaffold(
@@ -21,19 +29,19 @@ class _TabPageState extends State<TabPage> {
         items: [
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.heart_solid),
-            label: 'Main Page',
+            label: language == 'en-US' ? 'Main Page' : '主页',
           ),
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.doc_chart),
-            label: 'Me',
+            label: language == 'en-US' ? 'Me' : '我的',
           ),
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.doc_chart_fill),
-            label: 'Partner',
+            label: language == 'en-US' ? 'Partner' : 'TA',
           ),
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.gift),
-            label: "Redeem",
+            label: language == 'en-US' ? "Redeem" : '兑换',
           ),
         ],
       ),

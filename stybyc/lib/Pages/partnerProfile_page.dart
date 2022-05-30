@@ -23,6 +23,7 @@ class _PartnerProfilePageState extends State<PartnerProfilePage> {
   late final coupleName;
   late final birthday;
   late final coupleUID;
+  late final en;
 
   @override
   initState() {
@@ -37,6 +38,10 @@ class _PartnerProfilePageState extends State<PartnerProfilePage> {
     coupleName = data['username'];
     birthday = data['birthday'].toDate();
     coupleUID = data['uid'];
+
+    var language = AuthService().getLanguageSettings;
+    en = language == 'en-US';
+
     setState(() {});
   }
 
@@ -66,7 +71,6 @@ class _PartnerProfilePageState extends State<PartnerProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final difference = nextBirthday();
     return Scaffold(
       // back navigation bar
       appBar: AppBar(
@@ -92,7 +96,7 @@ class _PartnerProfilePageState extends State<PartnerProfilePage> {
             child: Row(
               children: <Widget>[
                 Text(
-                  'User Name',
+                  en ? 'User Name' : '用户名',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -100,7 +104,7 @@ class _PartnerProfilePageState extends State<PartnerProfilePage> {
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(width: 192),
+                SizedBox(width: en ? 192 : 228),
                 Text(coupleName, style: TextStyle(fontSize: 18)),
               ],
             ),
@@ -112,7 +116,7 @@ class _PartnerProfilePageState extends State<PartnerProfilePage> {
           child: Row(
             children: <Widget>[
               Text(
-                'Birthday',
+                en ? 'Birthday' : '生日',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -120,7 +124,7 @@ class _PartnerProfilePageState extends State<PartnerProfilePage> {
                   color: Colors.black,
                 ),
               ),
-              SizedBox(width: 185),
+              SizedBox(width: en ? 185 : 220),
               Text(
                 DateFormat('MM/dd/yyyy').format(birthday),
                 style: TextStyle(
@@ -132,37 +136,24 @@ class _PartnerProfilePageState extends State<PartnerProfilePage> {
           ),
         ),
         const SizedBox(height: 50),
-        Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('It\'s ', style: GoogleFonts.indieFlower(fontSize: 28)),
-              Text('$difference',
-                  style: GoogleFonts.indieFlower(
-                      fontSize: 28, color: Colors.blue)),
-              Text(' days left', style: GoogleFonts.indieFlower(fontSize: 28)),
-            ],
-          ),
-          Text(
-            'to $coupleName\'s birthday!',
-            style: GoogleFonts.indieFlower(fontSize: 28),
-          ),
-        ]),
+        getBirthdayReminder(),
         const SizedBox(height: 50),
         CupertinoButton(
-          child: Text('Break Up ${Emojis.brokenHeart}',
+          child: Text(
+              en ? 'Break Up ${Emojis.brokenHeart}' : '分手${Emojis.brokenHeart}',
               style: TextStyle(color: Colors.red)),
           onPressed: () async {
             // disconnect
             showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                      title: Text('Break Up?'),
-                      content: Text(
-                          'Are you sure you want to break up with your partner?'),
+                      title: Text(en ? 'Break Up?' : '分手？'),
+                      content: Text(en
+                          ? 'Are you sure you want to break up with your partner?'
+                          : '你确定要和TA分手吗？'),
                       actions: [
                         TextButton(
-                          child: Text('Yes :('),
+                          child: Text(en ? 'Yes :(' : '确定 :('),
                           onPressed: () {
                             disconnect();
                             Navigator.of(context).push(MaterialPageRoute(
@@ -171,7 +162,7 @@ class _PartnerProfilePageState extends State<PartnerProfilePage> {
                           },
                         ),
                         TextButton(
-                            child: Text('Nevermind'),
+                            child: Text(en ? 'Nevermind' : '算了'),
                             onPressed: () {
                               Navigator.of(context).pop();
                             })
@@ -181,5 +172,40 @@ class _PartnerProfilePageState extends State<PartnerProfilePage> {
         ),
       ]),
     );
+  }
+
+  Widget getBirthdayReminder() {
+    final difference = nextBirthday();
+    if (en) {
+      return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('It\'s ', style: GoogleFonts.indieFlower(fontSize: 28)),
+            Text('$difference',
+                style:
+                    GoogleFonts.indieFlower(fontSize: 28, color: Colors.blue)),
+            Text(' days left', style: GoogleFonts.indieFlower(fontSize: 28)),
+          ],
+        ),
+        Text(
+          'to $coupleName\'s birthday!',
+          style: GoogleFonts.indieFlower(fontSize: 28),
+        ),
+      ]);
+    } else {
+      return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Text('距离TA的生日', style: TextStyle(fontSize: 28)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('还有 ', style: TextStyle(fontSize: 28)),
+            Text('$difference',
+                style: TextStyle(fontSize: 28, color: Colors.blue)),
+            Text(' 天哦', style: TextStyle(fontSize: 28)),
+          ],
+        ),
+      ]);
+    }
   }
 }

@@ -26,6 +26,7 @@ class _ProfilePageState extends State<ProfilePage> {
       'https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg';
   var anniversary;
   var background;
+  var en;
 
   @override
   initState() {
@@ -40,6 +41,8 @@ class _ProfilePageState extends State<ProfilePage> {
     couple = data['couple'];
     anniversary = data['anniversary'].toDate();
     background = data['background'];
+    en = data['language'] == 'en-US';
+
     if (couple != 'NA') {
       getCoupleProfile();
     }
@@ -69,17 +72,17 @@ class _ProfilePageState extends State<ProfilePage> {
             context: context,
             builder: (context) => AlertDialog(
                   title: Text(
-                    'Something Went Wrong :(',
+                    en ? 'Something Went Wrong :(' : '出错啦 :(',
                     style: TextStyle(color: Colors.green),
                   ),
                   content: Text(
-                    'This person has a partner already',
+                    en ? 'This person has a partner already' : '这个人已经有伴啦',
                     style: TextStyle(color: Colors.green),
                   ),
                   actions: [
                     TextButton(
                       child: Text(
-                        'Fine',
+                        en ? 'Fine' : '好吧',
                         style: TextStyle(color: Colors.green),
                       ),
                       onPressed: () {
@@ -94,8 +97,10 @@ class _ProfilePageState extends State<ProfilePage> {
         showDialog(
             context: context,
             builder: (context) => AlertDialog(
-                  title: Text('Something Went Wrong :('),
-                  content: Text('This person doesn\'t allow any connection'),
+                  title: Text(en ? 'Something Went Wrong :(' : '出错啦 :('),
+                  content: Text(en
+                      ? 'This person doesn\'t allow any connection'
+                      : '这个人不允许来自任何人的配对哦'),
                   actions: [
                     TextButton(
                       child: Text('OK'),
@@ -170,12 +175,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget getIntroWidget() {
-    final _coupleEmailController = TextEditingController();
     if (couple != 'NA') {
       final difference = DateTime.now().difference(anniversary).inDays;
       return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Text(
-          'We\'ve been together',
+          en ? 'We\'ve been together' : '我们已经在一起',
           style: GoogleFonts.indieFlower(fontSize: 28),
         ),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -212,7 +216,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                             builder: (context) => TabPage()));
                                   },
                                   child: Text(
-                                    'Confirm',
+                                    en ? 'Confirm' : '确认',
                                     style: TextStyle(
                                         color: Colors.blue, fontSize: 28),
                                   ),
@@ -222,7 +226,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     Navigator.of(context).pop();
                                   },
                                   child: Text(
-                                    'Nevermind',
+                                    en ? 'Nevermind' : '取消',
                                     style: TextStyle(
                                         color: Colors.blue, fontSize: 20),
                                   ),
@@ -241,46 +245,88 @@ class _ProfilePageState extends State<ProfilePage> {
                   fontWeight: FontWeight.bold),
             ),
           ),
-          Text('days!', style: GoogleFonts.indieFlower(fontSize: 28)),
+          Text(en ? 'days!' : '天啦！',
+              style: GoogleFonts.indieFlower(fontSize: 28)),
         ]),
       ]);
     } else {
       return Column(children: [
-        Text('Your partner is on the way...',
+        Text(en ? 'Your partner is on the way...' : '你的伴侣在路上啦...',
             style: GoogleFonts.indieFlower(fontSize: 20)),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          GestureDetector(
-            onTap: () => {
-              showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                        title: Text('Connecting with...'),
-                        content: TextField(
-                          controller: _coupleEmailController,
-                          decoration: InputDecoration(
-                              hintText: 'Enter your partener\'s email'),
-                        ),
-                        actions: [
-                          TextButton(
-                            child: Text('Confirm'),
-                            onPressed: () {
-                              connect(_coupleEmailController.text.trim());
-                            },
-                          )
-                        ],
-                      )),
-            },
-            child: Text(
-              'Connect ',
-              style: GoogleFonts.indieFlower(
-                  fontSize: 20,
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold),
-            ),
+        getConnectIntro(),
+      ]);
+    }
+  }
+
+  Widget getConnectIntro() {
+    final _coupleEmailController = TextEditingController();
+    if (en) {
+      return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        GestureDetector(
+          onTap: () => {
+            showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                      title: Text(en ? 'Connecting with...' : '配对中...'),
+                      content: TextField(
+                        controller: _coupleEmailController,
+                        decoration: InputDecoration(
+                            hintText: en
+                                ? 'Enter your partener\'s email'
+                                : '请输入你想配对的email'),
+                      ),
+                      actions: [
+                        TextButton(
+                          child: Text(en ? 'Confirm' : '确认'),
+                          onPressed: () {
+                            connect(_coupleEmailController.text.trim());
+                          },
+                        )
+                      ],
+                    )),
+          },
+          child: Text(
+            'Connect ',
+            style: GoogleFonts.indieFlower(
+                fontSize: 20, color: Colors.blue, fontWeight: FontWeight.bold),
           ),
-          Text("to your partner right now!",
-              style: GoogleFonts.indieFlower(fontSize: 20)),
-        ])
+        ),
+        Text("to your partner right now!",
+            style: GoogleFonts.indieFlower(fontSize: 20)),
+      ]);
+    } else {
+      return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Text('现在就去和TA', style: TextStyle(fontSize: 20)),
+        GestureDetector(
+          onTap: () => {
+            showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                      title: Text(en ? 'Connecting with...' : '配对中...'),
+                      content: TextField(
+                        controller: _coupleEmailController,
+                        decoration: InputDecoration(
+                            hintText: en
+                                ? 'Enter your partener\'s email'
+                                : '请输入你想配对的email'),
+                      ),
+                      actions: [
+                        TextButton(
+                          child: Text(en ? 'Confirm' : '确认'),
+                          onPressed: () {
+                            connect(_coupleEmailController.text.trim());
+                          },
+                        )
+                      ],
+                    )),
+          },
+          child: Text(
+            ' 配对 ',
+            style: TextStyle(
+                color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+        ),
+        Text('吧！', style: TextStyle(fontSize: 20)),
       ]);
     }
   }

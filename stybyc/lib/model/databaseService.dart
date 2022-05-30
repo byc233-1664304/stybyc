@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stybyc/model/authService.dart';
 
 class DatabaseService {
   final String uid;
@@ -21,6 +24,7 @@ class DatabaseService {
       'background':
           'https://i.pinimg.com/564x/72/53/d1/7253d19fdce28f4a297e0838abe1fcc4.jpg',
       'allowConnection': true,
+      'language': Platform.localeName,
     });
   }
 
@@ -28,6 +32,19 @@ class DatabaseService {
     return FirebaseFirestore.instance.collection('users').doc(uid).update(
       {'anniversary': anniversary},
     );
+  }
+
+  Future switchLanguage() async {
+    String currLanguage = await AuthService().getLanguageSettings();
+    if (currLanguage == 'en-US') {
+      return FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'language': 'zh',
+      });
+    } else {
+      return FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'language': 'en-US',
+      });
+    }
   }
 
   Future connect(String coupleUID) {
