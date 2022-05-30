@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:stybyc/Pages/history_page.dart';
+import 'package:stybyc/Pages/partner_page.dart';
 import 'package:stybyc/Pages/profile_page.dart';
 import 'package:stybyc/Pages/redeem_page.dart';
-import 'package:stybyc/Pages/todo_page.dart';
+import 'package:stybyc/Pages/myPov_page.dart';
 
 class TabPage extends StatefulWidget {
   const TabPage({
@@ -24,12 +24,12 @@ class _TabPageState extends State<TabPage> {
             label: 'Main Page',
           ),
           BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.list_bullet),
-            label: 'To-Do List',
+            icon: Icon(CupertinoIcons.doc_chart),
+            label: 'Me',
           ),
           BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.book_solid),
-            label: 'History',
+            icon: Icon(CupertinoIcons.doc_chart_fill),
+            label: 'Partner',
           ),
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.gift),
@@ -42,9 +42,9 @@ class _TabPageState extends State<TabPage> {
           case 0:
             return ProfilePage();
           case 1:
-            return TodoPage();
+            return MyPovPage();
           case 2:
-            return HistoryPage();
+            return PartnerPage();
           case 3:
             return RedeemPage();
           default:

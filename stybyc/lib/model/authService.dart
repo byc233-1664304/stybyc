@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:stybyc/model/databaseService.dart';
 
@@ -6,6 +7,30 @@ class AuthService {
 
   Future logOut() async {
     _auth.signOut();
+  }
+
+  Future<Map<String, dynamic>> getUserData() async {
+    final currUser = _auth.currentUser;
+    DocumentSnapshot snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currUser!.uid)
+        .get();
+
+    Map<String, dynamic> data = snapshot.data()! as Map<String, dynamic>;
+
+    return data;
+  }
+
+  Future<Map<String, dynamic>> getCoupleData() async {
+    late final data;
+    Map<String, dynamic> userData = await getUserData() as Map<String, dynamic>;
+    String couple = userData['couple'];
+    DocumentSnapshot snapshot =
+        await FirebaseFirestore.instance.collection('users').doc(couple).get();
+
+    data = snapshot.data()! as Map<String, dynamic>;
+
+    return data;
   }
 
   Future deleteUser(String email, String password) async {

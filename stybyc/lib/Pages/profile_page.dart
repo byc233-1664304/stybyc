@@ -3,9 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:stybyc/Pages/partnerProfile_page.dart';
 import 'package:stybyc/Pages/tab_page.dart';
 import 'package:stybyc/Widgets/profile_widget.dart';
 import 'package:stybyc/Pages/user_page.dart';
+import 'package:stybyc/model/authService.dart';
 import 'package:stybyc/model/databaseService.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -32,31 +34,21 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   initInfo() async {
-    FirebaseAuth.instance.authStateChanges().listen((currUser) async {
-      if (currUser != null) {
-        DocumentSnapshot snapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currUser.uid)
-            .get();
-
-        Map<String, dynamic> data = snapshot.data()! as Map<String, dynamic>;
-        profilePath = data['profilePath'];
-        couple = data['couple'];
-        anniversary = data['anniversary'].toDate();
-        background = data['background'];
-        if (couple != '') {
-          getCoupleInfo();
-        }
-        setState(() {});
-      }
-    });
+    Map<String, dynamic> data =
+        await AuthService().getUserData() as Map<String, dynamic>;
+    profilePath = data['profilePath'];
+    couple = data['couple'];
+    anniversary = data['anniversary'].toDate();
+    background = data['background'];
+    if (couple != 'NA') {
+      getCoupleProfile();
+    }
+    setState(() {});
   }
 
-  getCoupleInfo() async {
-    DocumentSnapshot snapshot =
-        await FirebaseFirestore.instance.collection('users').doc(couple).get();
-
-    Map<String, dynamic> coupleData = snapshot.data()! as Map<String, dynamic>;
+  getCoupleProfile() async {
+    Map<String, dynamic> coupleData =
+        await AuthService().getCoupleData() as Map<String, dynamic>;
     coupleProfile = coupleData['ProfilePath'];
     setState(() {});
   }
@@ -70,7 +62,7 @@ class _ProfilePageState extends State<ProfilePage> {
         .listen((coupleData) {
       String couple = coupleData.docs[0]['uid'];
 
-      if (coupleData.docs[0]['couple'] != '') {
+      if (coupleData.docs[0]['couple'] != 'NA') {
         // alert this person has a partner already
         Navigator.of(context).pop();
         showDialog(
@@ -117,16 +109,7 @@ class _ProfilePageState extends State<ProfilePage> {
         FirebaseAuth.instance.authStateChanges().listen((currUser) async {
           final currUser = await FirebaseAuth.instance.currentUser;
 
-          // update partner's side of information about user
-          DocumentSnapshot snapshot = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(currUser!.uid)
-              .get();
-
-          Map<String, dynamic> userData =
-              snapshot.data()! as Map<String, dynamic>;
-
-          await DatabaseService(uid: couple).connect(currUser.uid);
+          await DatabaseService(uid: couple).connect(currUser!.uid);
           await DatabaseService(uid: currUser.uid).connect(couple);
 
           setState(() {});
@@ -164,8 +147,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
                         ProfileWidget(
-                          path: profilePath ??
-                              'https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg',
+                          path: profilePath,
                           onClicked: () async {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -175,7 +157,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         ProfileWidget(
                           path: coupleProfile,
-                          onClicked: () async {},
+                          onClicked: () async {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: ((context) => PartnerProfilePage())));
+                          },
                         ),
                       ]),
                   getIntroWidget(),

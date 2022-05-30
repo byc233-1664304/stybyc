@@ -13,6 +13,7 @@ import 'package:stybyc/Pages/tab_page.dart';
 import 'package:stybyc/auth/decision_tree.dart';
 import 'package:stybyc/model/authService.dart';
 import 'package:stybyc/model/databaseService.dart';
+import 'package:emojis/emojis.dart';
 
 class UserPage extends StatefulWidget {
   const UserPage({
@@ -46,29 +47,21 @@ class _UserPageState extends State<UserPage> {
   }
 
   initInfo() async {
-    FirebaseAuth.instance.authStateChanges().listen((currUser) async {
-      if (currUser != null) {
-        DocumentSnapshot snapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currUser.uid)
-            .get();
+    Map<String, dynamic> data =
+        await AuthService().getUserData() as Map<String, dynamic>;
+    username = data['username'];
+    email = data['email'];
+    profilePath = data['profilePath'];
+    backgroundPath = data['background'];
+    birthday = data['birthday'].toDate();
+    origBirthday = birthday;
+    anniversary = data['anniversary'].toDate();
+    couple = data['couple'];
+    allowConnection = data['allowConnection'];
 
-        Map<String, dynamic> data = snapshot.data()! as Map<String, dynamic>;
+    _usernameController = TextEditingController(text: username);
 
-        username = data['username'];
-        email = data['email'];
-        profilePath = data['profilePath'];
-        backgroundPath = data['background'];
-        birthday = data['birthday'].toDate();
-        origBirthday = birthday;
-        anniversary = data['anniversary'].toDate();
-        couple = data['couple'];
-        allowConnection = data['allowConnection'];
-        _usernameController = TextEditingController(text: username);
-
-        setState(() {});
-      }
-    });
+    setState(() {});
   }
 
   Future connect(String coupleEmail, BuildContext context) async {
@@ -125,17 +118,7 @@ class _UserPageState extends State<UserPage> {
                 ));
       } else {
         final currUser = await FirebaseAuth.instance.currentUser;
-
-        // update partner's side of information about user
-        DocumentSnapshot snapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currUser!.uid)
-            .get();
-
-        Map<String, dynamic> userData =
-            snapshot.data()! as Map<String, dynamic>;
-
-        await DatabaseService(uid: couple).connect(currUser.uid);
+        await DatabaseService(uid: couple).connect(currUser!.uid);
         await DatabaseService(uid: currUser.uid).connect(couple);
         setState(() {});
       }
@@ -220,7 +203,7 @@ class _UserPageState extends State<UserPage> {
     return Scaffold(
       // back navigation bar
       appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.transparent,
           elevation: 0,
           leading: CupertinoNavigationBarBackButton(
               //color: Colors.white,
@@ -302,7 +285,7 @@ class _UserPageState extends State<UserPage> {
                   child: couple == 'NA'
                       ? Text("Connect to Your Partner")
                       : Text(
-                          "Break Up :(",
+                          "Break Up ${Emojis.brokenHeart}",
                           style: TextStyle(color: Colors.red),
                         ),
                 )
