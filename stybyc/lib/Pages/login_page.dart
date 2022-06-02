@@ -1,9 +1,9 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:stybyc/Pages/forgotPassword_page.dart';
-import 'package:stybyc/auth/decision_tree.dart';
-import 'package:stybyc/model/authService.dart';
 
 class LoginPage extends StatefulWidget {
   final VoidCallback showRegisterPage;
@@ -19,17 +19,13 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  late final language = getLanguage();
+  late final language = Platform.localeName;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  Future getLanguage() async {
-    return await AuthService().getLanguageSettings();
   }
 
   @override
@@ -74,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: language == 'en-US' ? 'Email' : '邮箱',
+                      hintText: language.startsWith('en') ? 'Email' : '邮箱',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -95,7 +91,7 @@ class _LoginPageState extends State<LoginPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: language == 'en-US' ? 'Password' : '密码',
+                      hintText: language.startsWith('en') ? 'Password' : '密码',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -140,7 +136,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         child: Center(
                           child: Text(
-                            language == 'en-US' ? 'Sign In' : '登 录',
+                            language.startsWith('en') ? 'Sign In' : '登 录',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -161,7 +157,7 @@ class _LoginPageState extends State<LoginPage> {
                     }));
                   },
                   child: Text(
-                    language == 'en-US' ? 'Forget Password?' : '忘记密码啦？',
+                    language.startsWith('en') ? 'Forget Password?' : '忘记密码啦？',
                     style: TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.bold,
@@ -177,7 +173,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget getRegisterIntro() {
-    if (language == 'en-US') {
+    if (language.startsWith('en')) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

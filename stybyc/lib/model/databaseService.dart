@@ -1,79 +1,108 @@
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:stybyc/model/authService.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:intl/intl.dart';
+import 'package:stybyc/model/task.dart';
+import 'package:stybyc/model/taskTypes.dart';
 
 class DatabaseService {
   final String uid;
 
   DatabaseService({required this.uid});
 
-  final CollectionReference userCollection =
-      FirebaseFirestore.instance.collection('users');
+  setDefaultInfo(String username, String email) async {
+    bool en = Platform.localeName == 'en-US';
+    String task1 = en ? 'Say Good Morning' : '和TA说早安';
+    String task2 = en ? 'Drink a Cup of Water' : '喝一杯水';
+    String task3 = en ? 'Say Goodnight' : '和TA说晚安';
+    final t1 = Task(task1, '', 5, TaskType.Daily);
+    final t2 = Task(task2, '', 5, TaskType.Daily);
+    final t3 = Task(task3, '', 5, TaskType.Daily);
 
-  Future setDefaultUser(String username, String email) {
-    return FirebaseFirestore.instance.collection("users").doc(uid).set({
-      "uid": uid,
-      'username': username,
-      'email': email,
-      'profilePath':
-          'https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg',
-      'birthday': DateTime.now(),
-      'anniversary': DateTime.now(),
-      'couple': 'NA',
-      'background':
-          'https://i.pinimg.com/564x/72/53/d1/7253d19fdce28f4a297e0838abe1fcc4.jpg',
-      'allowConnection': true,
-      'language': Platform.localeName,
-    });
+    try {
+      await FirebaseDatabase.instance.ref().child(uid).set({
+        'username': username,
+        'email': email,
+        'uid': uid,
+        'profilePath':
+            'https://i.pinimg.com/474x/fa/54/1b/fa541b60cccf4b85f25d97bf49d1d57c.jpg',
+        'birthday': DateFormat('yMd').format(DateTime.now()),
+        'anniversary': DateFormat('yMd').format(DateTime.now()),
+        'partner': 'NA',
+        'background':
+            'https://www.leesharing.com/wp-content/uploads/2019/10/40.jpg',
+        'allowConnection': true,
+        'language': Platform.localeName,
+        'score': 0,
+      });
+    } catch (e) {
+      print(e.toString());
+    }
+
+    addDailyTask(t1);
+    addDailyTask(t2);
+    addDailyTask(t3);
   }
 
-  Future updateAnniversary(DateTime anniversary) {
-    return FirebaseFirestore.instance.collection('users').doc(uid).update(
-      {'anniversary': anniversary},
-    );
+  Future updateAnniversary(String partner, String anniversary) async {
+    DatabaseReference ref = FirebaseDatabase.instance.ref();
+    await ref.update({
+      '$uid/anniversary': anniversary,
+      '$partner/anniversary': anniversary,
+    });
   }
 
   Future switchLanguage() async {
-    String currLanguage = await AuthService().getLanguageSettings();
-    if (currLanguage == 'en-US') {
-      return FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'language': 'zh',
-      });
-    } else {
-      return FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'language': 'en-US',
-      });
-    }
-  }
-
-  Future connect(String coupleUID) {
-    return FirebaseFirestore.instance.collection('users').doc(uid).update({
-      'couple': coupleUID,
-      'anniversary': DateTime.now(),
+    DatabaseReference ref = FirebaseDatabase.instance.ref('$uid/language');
+    ref.onValue.listen((event) async {
+      if (event.toString().startsWith('en')) {
+        await ref.update({
+          'language': 'zh',
+        });
+      } else {
+        await ref.update({
+          'language': 'en',
+        });
+      }
     });
   }
 
-  Future disconnect() {
-    return FirebaseFirestore.instance.collection('users').doc(uid).update(
-      {
-        'couple': 'NA',
-        'anniversary': DateTime.now(),
-      },
-    );
+  Future connect(String partnerUID) async {
+    DatabaseReference ref = FirebaseDatabase.instance.ref();
+    await ref.update({
+      '$uid/partner': partnerUID,
+      '$uid/anniversary': DateFormat('yMd').format(DateTime.now()),
+      '$partnerUID/partner': uid,
+      '$partnerUID/anniversary': DateFormat('yMd').format(DateTime.now()),
+    });
   }
 
-  Future updateInfo(String username, DateTime birthday, bool allowConnection) {
-    return FirebaseFirestore.instance.collection('users').doc(uid).update(
-      {
-        'username': username,
-        'birthday': birthday,
-        'allowConnection': allowConnection,
-      },
-    );
+  Future disconnect(String partnerUID) async {
+    DatabaseReference ref = FirebaseDatabase.instance.ref();
+    await ref.update({
+      '$uid/partner': 'NA',
+      '$uid/anniversary': DateFormat('yMd').format(DateTime.now()),
+      '$partnerUID/partner': 'NA',
+      '$partnerUID/anniversary': DateFormat('yMd').format(DateTime.now()),
+    });
+  }
+
+  Future updateInfo(
+      String username, String birthday, bool allowConnection) async {
+    DatabaseReference ref = FirebaseDatabase.instance.ref(uid);
+    await ref.update({
+      'username': username,
+      'birthday': birthday,
+      'allowConnection': allowConnection,
+    });
+  }
+
+  Future addDailyTask(Task t) async {
+    DatabaseReference ref = FirebaseDatabase.instance.ref(uid).child('myDaily');
+    await ref.push().set(t.toJson());
   }
 
   Future deleteuser() {
-    return userCollection.doc(uid).delete();
+    return FirebaseDatabase.instance.ref(uid).remove();
   }
 }

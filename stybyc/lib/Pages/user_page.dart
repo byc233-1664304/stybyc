@@ -1,14 +1,14 @@
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
+import 'package:stybyc/Pages/profile_page.dart';
 import 'package:stybyc/Pages/tab_page.dart';
 import 'package:stybyc/auth/decision_tree.dart';
 import 'package:stybyc/model/authService.dart';
@@ -25,20 +25,20 @@ class UserPage extends StatefulWidget {
 }
 
 class _UserPageState extends State<UserPage> {
+  final userUID = FirebaseAuth.instance.currentUser!.uid;
+  final database = FirebaseDatabase.instance.ref();
   late final _usernameController;
   late final origBirthday;
 
   var profileFile;
   var backgroundFile;
 
-  var currUserUID;
   var username;
-  var email;
+  late final email;
   var profilePath;
   var backgroundPath;
   var birthday;
-  var anniversary;
-  var couple;
+  var partner;
   var allowConnection;
   var en;
 
@@ -49,37 +49,74 @@ class _UserPageState extends State<UserPage> {
   }
 
   initInfo() async {
-    Map<String, dynamic> data =
-        await AuthService().getUserData() as Map<String, dynamic>;
-    currUserUID = data['uid'];
-    username = data['username'];
-    email = data['email'];
-    profilePath = data['profilePath'];
-    backgroundPath = data['background'];
-    birthday = data['birthday'].toDate();
-    origBirthday = birthday;
-    anniversary = data['anniversary'].toDate();
-    couple = data['couple'];
-    allowConnection = data['allowConnection'];
-    en = data['language'] == 'en-US';
+    database.child(userUID).onValue.listen((event) {
+      final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+      setState(() {
+        username = data['username'];
+        email = data['email'];
+        profilePath = data['profilePath'];
+        backgroundPath = data['backgroundPath'];
+        birthday = data['birthday'];
+        origBirthday = birthday;
+        partner = data['partner'];
+        allowConnection = data['allowConnection'];
+        final language = data['language'];
+        en = language.toString().startsWith('en');
 
-    _usernameController = TextEditingController(text: username);
-
-    setState(() {});
+        _usernameController = TextEditingController(text: username);
+      });
+    });
   }
 
-  Future connect(String coupleEmail, BuildContext context) async {
-    // search for partner
-    FirebaseFirestore.instance
-        .collection('users')
-        .where('email', isEqualTo: coupleEmail)
-        .snapshots()
-        .listen((coupleData) async {
-      String couple = coupleData.docs[0]['uid'];
+  Future connect(String partnerEmail, BuildContext context) async {
+    if (partnerEmail == email) {
+      showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+                title: Text(
+                  en ? 'Something Went Wrong :(' : '出错啦 :(',
+                ),
+                content: Text(
+                  en
+                      ? 'You can\'t connect with yourself :('
+                      : '不会吧不会吧，不会真的有人自攻自受的吧',
+                ),
+                actions: [
+                  TextButton(
+                    child: Text(
+                      en ? 'Enter Someone Else\'s Email' : '输入别的邮箱',
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  )
+                ],
+              ));
+    } else {
+      late final partnerUID;
+      final snapshot = await FirebaseDatabase.instance
+          .ref()
+          .orderByChild('email')
+          .equalTo(partnerEmail)
+          .get()
+          .then((snapshot) {
+        Map<dynamic, dynamic> m =
+            Map<dynamic, dynamic>.from(snapshot.value as Map);
+        partnerUID = m.keys.first;
+      });
 
-      if (coupleData.docs[0]['couple'] != 'NA') {
+      // search for partner
+      final psnapshot =
+          await FirebaseDatabase.instance.ref('$partnerUID/partner').get();
+      final partnerPartner = psnapshot.value;
+
+      final asnapshot = await FirebaseDatabase.instance
+          .ref('$partnerUID/allowConnection')
+          .get();
+      final partnerAllow = asnapshot.value;
+
+      if (partnerPartner != 'NA') {
         // alert this person has a partner already
-        Navigator.of(context).pop();
         showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -103,9 +140,8 @@ class _UserPageState extends State<UserPage> {
                     )
                   ],
                 ));
-      } else if (coupleData.docs[0]['allowConnection'] == false) {
-        // alert this person don't want to be connected
-        Navigator.of(context).pop();
+      } else if (partnerAllow == false) {
+        // alert this person has a partner already
         showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -123,16 +159,16 @@ class _UserPageState extends State<UserPage> {
                   ],
                 ));
       } else {
-        await DatabaseService(uid: couple).connect(currUserUID);
-        await DatabaseService(uid: currUserUID).connect(couple);
+        await DatabaseService(uid: partnerUID).connect(userUID);
         setState(() {});
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (context) => const ProfilePage()));
       }
-    });
+    }
   }
 
   Future disconnect() async {
-    await DatabaseService(uid: currUserUID).disconnect();
-    await DatabaseService(uid: couple).disconnect();
+    await DatabaseService(uid: userUID).disconnect(partner);
 
     setState(() {});
   }
@@ -146,10 +182,10 @@ class _UserPageState extends State<UserPage> {
   updateProfile() async {
     if (profileFile != null) {
       String url = await uploadProfileImage();
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .update({'profilePath': url});
+      DatabaseReference ref = FirebaseDatabase.instance.ref(userUID);
+      await ref.update({
+        'profilePath': url,
+      });
     }
   }
 
@@ -157,9 +193,7 @@ class _UserPageState extends State<UserPage> {
     TaskSnapshot uploadSnapshot = await FirebaseStorage.instance
         .ref()
         .child('profile')
-        .child(FirebaseAuth.instance.currentUser!.uid +
-            "_" +
-            basename(profileFile.path))
+        .child("${userUID}_${basename(profileFile.path)}")
         .putFile(profileFile);
 
     return uploadSnapshot.ref.getDownloadURL();
@@ -167,17 +201,17 @@ class _UserPageState extends State<UserPage> {
 
   chooseBackground() async {
     XFile? xfile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    profileFile = File(xfile!.path);
+    backgroundFile = File(xfile!.path);
     setState(() {});
   }
 
   updateBackground() async {
     if (backgroundFile != null) {
       String url = await uploadProfileImage();
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .update({'background': url});
+      DatabaseReference ref = FirebaseDatabase.instance.ref(userUID);
+      await ref.update({
+        'background': url,
+      });
     }
   }
 
@@ -185,17 +219,14 @@ class _UserPageState extends State<UserPage> {
     TaskSnapshot uploadSnapshot = await FirebaseStorage.instance
         .ref()
         .child('background')
-        .child(FirebaseAuth.instance.currentUser!.uid +
-            "_" +
-            basename(backgroundFile.path))
+        .child("${userUID}_${basename(backgroundFile.path)}")
         .putFile(backgroundFile);
 
     return uploadSnapshot.ref.getDownloadURL();
   }
 
   updateInfo() async {
-    final currUser = await FirebaseAuth.instance.currentUser;
-    await DatabaseService(uid: currUser!.uid)
+    await DatabaseService(uid: userUID)
         .updateInfo(_usernameController.text.trim(), birthday, allowConnection);
     setState(() {});
   }
@@ -236,7 +267,7 @@ class _UserPageState extends State<UserPage> {
                               TextButton(
                                 child: Text(en ? 'Yep' : '确定'),
                                 onPressed: () async {
-                                  await DatabaseService(uid: currUserUID)
+                                  await DatabaseService(uid: userUID)
                                       .switchLanguage();
                                   Navigator.of(context).push(MaterialPageRoute(
                                     builder: (context) => UserPage(),
@@ -253,7 +284,7 @@ class _UserPageState extends State<UserPage> {
                           ));
                   setState(() {});
                 } else {
-                  if (couple == 'NA') {
+                  if (partner == 'NA') {
                     // connect menu
                     showDialog(
                         context: context,
@@ -273,7 +304,13 @@ class _UserPageState extends State<UserPage> {
                                     connect(_coupleEmailController.text.trim(),
                                         context);
                                   },
-                                )
+                                ),
+                                TextButton(
+                                  child: Text(en ? 'Nevermind' : '取消'),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
                               ],
                             ));
                   } else {
@@ -321,7 +358,7 @@ class _UserPageState extends State<UserPage> {
                 ),
                 PopupMenuItem(
                   value: 3,
-                  child: couple == 'NA'
+                  child: partner == 'NA'
                       ? Text(en ? "Connect to Your Partner" : '配对')
                       : Text(
                           en
@@ -337,230 +374,259 @@ class _UserPageState extends State<UserPage> {
       //content
       body: Column(children: <Widget>[
         const SizedBox(height: 120),
-        Center(
-          //profile image
-          child: Stack(children: [
-            buildImage(),
-            Positioned(
-                bottom: 0,
-                right: 0,
-                child: GestureDetector(
-                  onTap: () => {
-                    chooseProfile(),
-                  },
-                  child: buildEidtIcon(Colors.blue),
-                )),
-          ]),
-        ),
+        getProfile(),
         const SizedBox(height: 35),
-        // user name
-        Container(
-          color: Colors.grey.withOpacity(0.1),
-          child: Padding(
-            padding: EdgeInsets.only(top: 5, left: 25, bottom: 5),
-            child: Row(
-              children: <Widget>[
-                Text(
-                  en ? 'User Name' : '用户名',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    decoration: TextDecoration.none,
-                    color: Colors.black,
-                  ),
-                ),
-                SizedBox(width: en ? 194 : 244),
-                Flexible(
-                  child: CupertinoTextField.borderless(
-                    controller: _usernameController,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // birthday picker
-        Padding(
-          padding: EdgeInsets.only(top: 5, left: 25, bottom: 5),
-          child: Row(
-            children: <Widget>[
-              Text(
-                en ? 'Birthday' : '生日',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  decoration: TextDecoration.none,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(width: en ? 185 : 232),
-              CupertinoButton(
-                padding: EdgeInsetsDirectional.zero,
-                child: Text(
-                  DateFormat('MM/dd/yyyy').format(birthday),
-                  style: TextStyle(
-                      decoration: TextDecoration.none, color: Colors.black),
-                ),
-                onPressed: () {
-                  showCupertinoModalPopup(
-                      context: context,
-                      builder: (_) => Container(
-                            height: 500,
-                            color: Colors.white,
-                            child: Column(
-                              children: [
-                                SizedBox(
-                                  height: 350,
-                                  child: CupertinoDatePicker(
-                                    initialDateTime: birthday,
-                                    mode: CupertinoDatePickerMode.date,
-                                    onDateTimeChanged: (val) {
-                                      setState(() {
-                                        birthday = val;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: Text(
-                                    en ? 'Confirm' : '确认',
-                                    style: TextStyle(
-                                        color: Colors.blue, fontSize: 28),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    birthday = origBirthday;
-                                    Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                            builder: (context) => UserPage()));
-                                  },
-                                  child: Text(
-                                    en ? 'Nevermind' : '取消',
-                                    style: TextStyle(
-                                        color: Colors.blue, fontSize: 20),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ));
-                },
-              ),
-            ],
-          ),
-        ),
-        Container(
-          color: Colors.grey.withOpacity(0.1),
-          child: Padding(
-            padding: EdgeInsets.only(top: 5, left: 25, bottom: 5),
-            child: Row(
-              children: [
-                Text(
-                  en ? 'Allow Connection' : '允许配对',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    decoration: TextDecoration.none,
-                    color: Colors.black,
-                  ),
-                ),
-                SizedBox(width: en ? 150 : 230),
-                CupertinoSwitch(
-                    value: allowConnection,
-                    onChanged: (value) {
-                      allowConnection = value;
-                      setState(() {});
-                    })
-              ],
-            ),
-          ),
-        ),
+        getUserName(),
+        getBirthday(context),
+        getAllowConnection(),
         const SizedBox(height: 25),
-        CupertinoButton.filled(
-          child: Text(en ? 'Save' : '保存'),
-          onPressed: () async {
-            updateProfile();
-            updateBackground();
-            updateInfo();
-          },
-        ),
+        getSaveButton(),
         const SizedBox(height: 10),
-        CupertinoButton(
-          child: Text(en ? 'Sign Out' : '退出登录'),
-          onPressed: () async {
-            await AuthService().logOut();
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => DecisionTree()),
-            );
-          },
-        ),
+        getSignOutButton(context),
         const SizedBox(height: 10),
-        CupertinoButton(
-          child: Text(en ? 'Delete Account' : '删除账号',
-              style: TextStyle(color: Colors.red)),
-          onPressed: () {
-            final _passwordController = TextEditingController();
-
-            showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                      title: Text(en
-                          ? 'Enter Your Password to Delete Account'
-                          : '输入密码来删除账号'),
-                      content: TextField(
-                        controller: _passwordController,
-                        decoration:
-                            InputDecoration(hintText: en ? 'Password' : '密码'),
-                      ),
-                      actions: [
-                        TextButton(
-                          child: Text(en ? 'Confirm' : '确定'),
-                          onPressed: () {
-                            try {
-                              AuthService().deleteUser(
-                                  email, _passwordController.text.trim());
-                            } catch (e) {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    title: Text("Something Went Wrong!"),
-                                    content: Text(e.toString()),
-                                    actions: [
-                                      TextButton(
-                                        child: Text("OK"),
-                                        onPressed: () {
-                                          Navigator.of(context).pop();
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            }
-                          },
-                        ),
-                        TextButton(
-                          child: Text(en ? 'Nevermind' : '算啦'),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                      ],
-                    ));
-          },
-        ),
+        getDeleteAccountButton(context),
       ]),
     );
   }
 
+  Widget getProfile() {
+    return Center(
+      //profile image
+      child: Stack(children: [
+        buildImage(),
+        Positioned(
+            bottom: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: () => {
+                chooseProfile(),
+              },
+              child: buildEidtIcon(Colors.blue),
+            )),
+      ]),
+    );
+  }
+
+  Widget getUserName() {
+    return Container(
+      color: Colors.grey.withOpacity(0.1),
+      child: Padding(
+        padding: EdgeInsets.only(top: 5, left: 25, bottom: 5, right: 20),
+        child: Row(
+          children: <Widget>[
+            Text(
+              en ? 'User Name' : '用户名',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                decoration: TextDecoration.none,
+                color: Colors.black,
+              ),
+            ),
+            Flexible(
+              child: TextField(
+                decoration: InputDecoration(border: InputBorder.none),
+                textAlign: TextAlign.right,
+                controller: _usernameController,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget getBirthday(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: 5, left: 25, bottom: 5, right: 5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Text(
+            en ? 'Birthday' : '生日',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              decoration: TextDecoration.none,
+              color: Colors.black,
+            ),
+          ),
+          CupertinoButton(
+            child: Text(
+              birthday,
+              style: TextStyle(
+                  decoration: TextDecoration.none, color: Colors.black),
+            ),
+            onPressed: () {
+              showCupertinoModalPopup(
+                  context: context,
+                  builder: (_) => Container(
+                        height: 500,
+                        color: Colors.white,
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              height: 350,
+                              child: CupertinoDatePicker(
+                                initialDateTime:
+                                    DateFormat('yMd').parse(birthday),
+                                mode: CupertinoDatePickerMode.date,
+                                onDateTimeChanged: (val) {
+                                  setState(() {
+                                    birthday = DateFormat('yMd').format(val);
+                                  });
+                                },
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: Text(
+                                en ? 'Confirm' : '确认',
+                                style:
+                                    TextStyle(color: Colors.blue, fontSize: 28),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                birthday = origBirthday;
+                                Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (context) => UserPage()));
+                              },
+                              child: Text(
+                                en ? 'Nevermind' : '取消',
+                                style:
+                                    TextStyle(color: Colors.blue, fontSize: 20),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ));
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget getAllowConnection() {
+    return Container(
+      color: Colors.grey.withOpacity(0.1),
+      child: Padding(
+        padding: EdgeInsets.only(top: 5, left: 25, bottom: 5, right: 15),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              en ? 'Allow Connection' : '允许配对',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                decoration: TextDecoration.none,
+                color: Colors.black,
+              ),
+            ),
+            CupertinoSwitch(
+                value: allowConnection,
+                onChanged: (value) {
+                  allowConnection = value;
+                  setState(() {});
+                })
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget getSaveButton() {
+    return CupertinoButton.filled(
+      child: Text(en ? 'Save' : '保存'),
+      onPressed: () async {
+        updateProfile();
+        updateBackground();
+        updateInfo();
+      },
+    );
+  }
+
+  Widget getSignOutButton(BuildContext context) {
+    return CupertinoButton(
+      child: Text(en ? 'Sign Out' : '退出登录'),
+      onPressed: () async {
+        await AuthService().logOut();
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => DecisionTree()),
+        );
+      },
+    );
+  }
+
+  Widget getDeleteAccountButton(BuildContext context) {
+    return CupertinoButton(
+      child: Text(en ? 'Delete Account' : '删除账号',
+          style: TextStyle(color: Colors.red)),
+      onPressed: () {
+        final _passwordController = TextEditingController();
+
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                  title: Text(en
+                      ? 'Enter Your Password to Delete Account'
+                      : '输入密码来删除账号'),
+                  content: TextField(
+                    controller: _passwordController,
+                    decoration:
+                        InputDecoration(hintText: en ? 'Password' : '密码'),
+                  ),
+                  actions: [
+                    TextButton(
+                      child: Text(en ? 'Confirm' : '确定'),
+                      onPressed: () {
+                        try {
+                          if (partner != 'NA') {
+                            disconnect();
+                          }
+                          AuthService().deleteUser(
+                              email, _passwordController.text.trim());
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => DecisionTree()));
+                        } catch (e) {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text("Something Went Wrong!"),
+                                content: Text(e.toString()),
+                                actions: [
+                                  TextButton(
+                                    child: Text("OK"),
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        }
+                      },
+                    ),
+                    TextButton(
+                      child: Text(en ? 'Nevermind' : '算啦'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                ));
+      },
+    );
+  }
+
   Widget buildImage() {
-    String currprofilePath = profilePath ??
-        'https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg';
-    final image = NetworkImage(currprofilePath);
+    final image = NetworkImage(profilePath);
 
     return ClipOval(
       child: Material(

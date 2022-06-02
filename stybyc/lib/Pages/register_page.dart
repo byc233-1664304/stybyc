@@ -1,9 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:core';
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:stybyc/auth/decision_tree.dart';
-import 'package:stybyc/model/authService.dart';
 import 'package:stybyc/model/databaseService.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -22,7 +23,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _usernameController = TextEditingController();
-  late final language = getLanguage();
+  late final language = Platform.localeName;
 
   @override
   void dispose() {
@@ -69,13 +70,9 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       // add user details to document
-      final userUID = await FirebaseAuth.instance.currentUser!.uid;
-      DatabaseService(uid: userUID).setDefaultUser(
+      final userUID = FirebaseAuth.instance.currentUser!.uid;
+      DatabaseService(uid: userUID).setDefaultInfo(
           _usernameController.text.trim(), _emailController.text.trim());
-
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => DecisionTree()),
-      );
     }
   }
 
@@ -86,10 +83,6 @@ class _RegisterPageState extends State<RegisterPage> {
     } else {
       return false;
     }
-  }
-
-  Future getLanguage() async {
-    return await AuthService().getLanguageSettings();
   }
 
   @override
@@ -134,7 +127,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: language == 'en-US' ? 'Username' : '用户名',
+                      hintText: language.startsWith('en') ? 'Username' : '用户名',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -154,7 +147,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: language == 'en-US' ? 'Email' : '邮箱',
+                      hintText: language.startsWith('en') ? 'Email' : '邮箱',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -175,7 +168,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText: language == 'en-US' ? 'Password' : '密码',
+                      hintText: language.startsWith('en') ? 'Password' : '密码',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -196,8 +189,9 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderSide: BorderSide(color: Colors.deepPurple),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      hintText:
-                          language == 'en-US' ? 'Confirm Password' : '确认密码',
+                      hintText: language.startsWith('en')
+                          ? 'Confirm Password'
+                          : '确认密码',
                       fillColor: Colors.grey[200],
                       filled: true,
                     ),
@@ -207,8 +201,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: GestureDetector(
-                      onTap: () {
-                        signUp();
+                      onTap: () async {
+                        await signUp();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (context) => DecisionTree()),
+                        );
                       },
                       child: Container(
                         padding: EdgeInsets.all(20),
@@ -218,7 +216,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         child: Center(
                           child: Text(
-                            language == 'en-US' ? 'Sign Up' : '注 册',
+                            language.startsWith('en') ? 'Sign Up' : '注 册',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -233,7 +231,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      language == 'en-US' ? 'I am a member! ' : '我有账户的！',
+                      language.startsWith('en') ? 'I am a member! ' : '我有账户的！',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                       ),
@@ -241,7 +239,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     GestureDetector(
                       onTap: widget.showLoginPage,
                       child: Text(
-                        language == 'en-US' ? 'Login now' : '去登录',
+                        language.startsWith('en') ? 'Login now' : '去登录',
                         style: TextStyle(
                           color: Colors.blue,
                           fontWeight: FontWeight.bold,

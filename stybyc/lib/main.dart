@@ -6,7 +6,6 @@ import 'package:stybyc/auth/decision_tree.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  //await UserPreferences.init();
 
   runApp(const MyApp());
 }
@@ -14,6 +13,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
+  @override
   Widget build(BuildContext context) {
     return const MaterialApp(
       home: DecisionTree(),

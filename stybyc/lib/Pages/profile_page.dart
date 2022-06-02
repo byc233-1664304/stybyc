@@ -1,13 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:stybyc/Pages/partnerProfile_page.dart';
 import 'package:stybyc/Pages/tab_page.dart';
 import 'package:stybyc/Widgets/profile_widget.dart';
 import 'package:stybyc/Pages/user_page.dart';
-import 'package:stybyc/model/authService.dart';
 import 'package:stybyc/model/databaseService.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -20,13 +20,18 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  var profilePath;
-  var couple;
-  var coupleProfile =
-      'https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg';
+  final userUID = FirebaseAuth.instance.currentUser!.uid;
+  final database = FirebaseDatabase.instance.ref();
+  final _coupleEmailController = TextEditingController();
+
+  late final partner;
+  late final email;
+  late final profilePath;
+  var partnerProfile =
+      'https://i.pinimg.com/474x/fa/54/1b/fa541b60cccf4b85f25d97bf49d1d57c.jpg';
   var anniversary;
-  var background;
-  var en;
+  late final background;
+  late final en;
 
   @override
   initState() {
@@ -34,40 +39,75 @@ class _ProfilePageState extends State<ProfilePage> {
     initInfo();
   }
 
-  initInfo() async {
-    Map<String, dynamic> data =
-        await AuthService().getUserData() as Map<String, dynamic>;
-    profilePath = data['profilePath'];
-    couple = data['couple'];
-    anniversary = data['anniversary'].toDate();
-    background = data['background'];
-    en = data['language'] == 'en-US';
+  void initInfo() {
+    database.child(userUID).onValue.listen((event) {
+      final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+      setState(() async {
+        partner = data['partner'].toString();
+        email = data['email'];
+        profilePath = data['profilePath'];
+        anniversary = data['anniversary'];
+        background = data['background'];
+        en = data['language'].toString().startsWith('en');
 
-    if (couple != 'NA') {
-      getCoupleProfile();
-    }
-    setState(() {});
+        if (partner != 'NA') {
+          final snapshot =
+              await database.child(partner).child('profilePath').get();
+          partnerProfile = snapshot.value.toString();
+        }
+      });
+    });
   }
 
-  getCoupleProfile() async {
-    Map<String, dynamic> coupleData =
-        await AuthService().getCoupleData() as Map<String, dynamic>;
-    coupleProfile = coupleData['ProfilePath'];
-    setState(() {});
-  }
+  Future connect(String partnerEmail) async {
+    if (partnerEmail == email) {
+      showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+                title: Text(
+                  en ? 'Something Went Wrong :(' : '出错啦 :(',
+                ),
+                content: Text(
+                  en
+                      ? 'You can\'t connect with yourself :('
+                      : '不会吧不会吧，不会真的有人自攻自受的吧',
+                ),
+                actions: [
+                  TextButton(
+                    child: Text(
+                      en ? 'Enter Someone Else\'s Email' : '输入别的邮箱',
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  )
+                ],
+              ));
+    } else {
+      late final partnerUID;
+      final snapshot = await FirebaseDatabase.instance
+          .ref()
+          .orderByChild('email')
+          .equalTo(partnerEmail)
+          .get()
+          .then((snapshot) {
+        Map<dynamic, dynamic> m =
+            Map<dynamic, dynamic>.from(snapshot.value as Map);
+        partnerUID = m.keys.first;
+      });
 
-  Future connect(String coupleEmail) async {
-    // search for partner
-    FirebaseFirestore.instance
-        .collection('users')
-        .where('email', isEqualTo: coupleEmail)
-        .snapshots()
-        .listen((coupleData) {
-      String couple = coupleData.docs[0]['uid'];
+      // search for partner
+      final psnapshot =
+          await FirebaseDatabase.instance.ref('$partnerUID/partner').get();
+      final partnerPartner = psnapshot.value;
 
-      if (coupleData.docs[0]['couple'] != 'NA') {
+      final asnapshot = await FirebaseDatabase.instance
+          .ref('$partnerUID/allowConnection')
+          .get();
+      final partnerAllow = asnapshot.value;
+
+      if (partnerPartner != 'NA') {
         // alert this person has a partner already
-        Navigator.of(context).pop();
         showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -91,9 +131,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     )
                   ],
                 ));
-      } else if (coupleData.docs[0]['allowConnection'] == false) {
-        // alert this person don't want to be connected
-        Navigator.of(context).pop();
+      } else if (partnerAllow == false) {
+        // alert this person has a partner already
         showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -111,72 +150,94 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
                 ));
       } else {
-        FirebaseAuth.instance.authStateChanges().listen((currUser) async {
-          final currUser = await FirebaseAuth.instance.currentUser;
-
-          await DatabaseService(uid: couple).connect(currUser!.uid);
-          await DatabaseService(uid: currUser.uid).connect(couple);
-
-          setState(() {});
-        });
+        await DatabaseService(uid: partnerUID).connect(userUID);
+        setState(() {});
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (context) => const ProfilePage()));
       }
-    });
+    }
   }
 
   updateAnniversary() async {
-    final currUser = await FirebaseAuth.instance.currentUser;
     // update user
-    await DatabaseService(uid: currUser!.uid).updateAnniversary(anniversary);
-
-    //update partner
-    await DatabaseService(uid: couple).updateAnniversary(anniversary);
+    await DatabaseService(uid: userUID).updateAnniversary(partner, anniversary);
     setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-        constraints: const BoxConstraints.expand(),
-        //decoration: BoxDecoration(
-        //image: DecorationImage(
-        //image: NetworkImage(background),
-        //fit: BoxFit.cover,
-        //)),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Center(
-            child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: <Widget>[
-                        ProfileWidget(
-                          path: profilePath,
-                          onClicked: () async {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (context) => UserPage()),
-                            );
-                          },
-                        ),
-                        ProfileWidget(
-                          path: coupleProfile,
-                          onClicked: () async {
-                            Navigator.of(context).push(MaterialPageRoute(
-                                builder: ((context) => PartnerProfilePage())));
-                          },
-                        ),
-                      ]),
-                  getIntroWidget(),
-                ]),
-          ),
-        ));
+    return Scaffold(
+        body: Container(
+      constraints: const BoxConstraints.expand(),
+      decoration: BoxDecoration(
+          image: DecorationImage(
+        image: NetworkImage(background),
+        fit: BoxFit.cover,
+      )),
+      child: Center(
+        child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: <Widget>[
+                    getmyProfile(),
+                    getPartnerProfile(),
+                  ]),
+              getIntroWidget(),
+            ]),
+      ),
+    ));
+  }
+
+  Widget getmyProfile() {
+    return ProfileWidget(
+      path: profilePath,
+      onClicked: () async {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => UserPage()),
+        );
+      },
+    );
+  }
+
+  Widget getPartnerProfile() {
+    return ProfileWidget(
+      path: partnerProfile,
+      onClicked: () async {
+        if (partner != 'NA') {
+          Navigator.of(context).push(
+              MaterialPageRoute(builder: ((context) => PartnerProfilePage())));
+        } else {
+          showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                    title: Text(en ? 'Your partner is lost' : '你的TA迷路了哦'),
+                    content: TextField(
+                      controller: _coupleEmailController,
+                      decoration: InputDecoration(
+                          hintText: en
+                              ? 'Enter your partner\'s email'
+                              : '输入TA的email来配对吧'),
+                    ),
+                    actions: [
+                      TextButton(
+                        child: Text(en ? 'Confirm' : '确认'),
+                        onPressed: () {
+                          connect(_coupleEmailController.text.trim());
+                        },
+                      )
+                    ],
+                  ));
+        }
+      },
+    );
   }
 
   Widget getIntroWidget() {
-    if (couple != 'NA') {
-      final difference = DateTime.now().difference(anniversary).inDays;
+    if (partner != 'NA') {
+      final anniversaryDateTime = DateFormat('yMd').parse(anniversary);
+      final difference = DateTime.now().difference(anniversaryDateTime).inDays;
       return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Text(
           en ? 'We\'ve been together' : '我们已经在一起',
@@ -195,11 +256,12 @@ class _ProfilePageState extends State<ProfilePage> {
                             SizedBox(
                               height: 300,
                               child: CupertinoDatePicker(
-                                initialDateTime: anniversary,
+                                initialDateTime:
+                                    DateFormat('yMd').parse(anniversary),
                                 mode: CupertinoDatePickerMode.date,
                                 onDateTimeChanged: (val) {
                                   setState(() {
-                                    anniversary = val;
+                                    anniversary = DateFormat('yMd').format(val);
                                   });
                                 },
                               ),
@@ -259,7 +321,6 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget getConnectIntro() {
-    final _coupleEmailController = TextEditingController();
     if (en) {
       return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         GestureDetector(
@@ -281,7 +342,13 @@ class _ProfilePageState extends State<ProfilePage> {
                           onPressed: () {
                             connect(_coupleEmailController.text.trim());
                           },
-                        )
+                        ),
+                        TextButton(
+                          child: Text(en ? 'Nevermind' : '取消'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
                       ],
                     )),
           },
