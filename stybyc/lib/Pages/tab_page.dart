@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
@@ -6,7 +5,6 @@ import 'package:stybyc/Pages/partner_page.dart';
 import 'package:stybyc/Pages/profile_page.dart';
 import 'package:stybyc/Pages/redeem_page.dart';
 import 'package:stybyc/Pages/myPov_page.dart';
-import 'package:stybyc/model/databaseService.dart';
 
 class TabPage extends StatefulWidget {
   const TabPage({

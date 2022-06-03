@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:stybyc/Pages/loading_page.dart';
 import 'package:stybyc/Pages/partnerProfile_page.dart';
 import 'package:stybyc/Pages/tab_page.dart';
 import 'package:stybyc/Widgets/profile_widget.dart';

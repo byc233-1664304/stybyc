@@ -102,6 +102,11 @@ class DatabaseService {
     await ref.push().set(t.toJson());
   }
 
+  Future addTask(Task t) async {
+    DatabaseReference ref = FirebaseDatabase.instance.ref(uid).child('myTask');
+    await ref.push().set(t.toJson());
+  }
+
   Future deleteuser() {
     return FirebaseDatabase.instance.ref(uid).remove();
   }

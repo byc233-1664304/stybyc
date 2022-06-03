@@ -17,13 +17,13 @@ class TaskWidget extends StatelessWidget {
   getColor() {
     switch (type) {
       case TaskType.Daily:
-        return Colors.blue.withOpacity(0.5);
+        return Color.fromARGB(255, 138, 184, 221).withOpacity(0.5);
       case TaskType.Wish:
-        return Colors.pink.withOpacity(0.5);
+        return Color.fromARGB(255, 221, 146, 171).withOpacity(0.5);
       case TaskType.Surprise:
-        return Colors.deepPurple.withOpacity(0.5);
+        return Color.fromARGB(255, 179, 154, 224).withOpacity(0.5);
       case TaskType.Punishment:
-        return Colors.grey.withOpacity(0.5);
+        return Color.fromARGB(255, 190, 189, 189).withOpacity(0.5);
       default:
         return Colors.white.withOpacity(0.5);
     }
